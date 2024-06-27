@@ -1,0 +1,76 @@
+#include <stdio.h>
+#include <string.h>
+
+// Function to encrypt the plaintext using the key stream
+void encrypt(const char* plaintext, const int* keyStream, char* ciphertext) {
+    int len = strlen(plaintext);
+    for (int i = 0; i < len; i++) {
+        if (plaintext[i] >= 'a' && plaintext[i] <= 'z') {
+            ciphertext[i] = ((plaintext[i] - 'a' + keyStream[i]) % 26) + 'a';
+        } else if (plaintext[i] >= 'A' && plaintext[i] <= 'Z') {
+            ciphertext[i] = ((plaintext[i] - 'A' + keyStream[i]) % 26) + 'A';
+        } else {
+            ciphertext[i] = plaintext[i];  // Non-alphabet characters remain unchanged
+        }
+    }
+    ciphertext[len] = '\0';
+}
+
+// Function to decrypt the ciphertext using the key stream
+void decrypt(const char* ciphertext, const int* keyStream, char* plaintext) {
+    int len = strlen(ciphertext);
+    for (int i = 0; i < len; i++) {
+        if (ciphertext[i] >= 'a' && ciphertext[i] <= 'z') {
+            plaintext[i] = ((ciphertext[i] - 'a' - keyStream[i] + 26) % 26) + 'a';
+        } else if (ciphertext[i] >= 'A' && ciphertext[i] <= 'Z') {
+            plaintext[i] = ((ciphertext[i] - 'A' - keyStream[i] + 26) % 26) + 'A';
+        } else {
+            plaintext[i] = ciphertext[i];  // Non-alphabet characters remain unchanged
+        }
+    }
+    plaintext[len] = '\0';
+}
+
+// Function to generate a key stream for a given plaintext and desired plaintext
+void generateKeyStream(const char* desiredPlaintext, const char* ciphertext, int* keyStream) {
+    int len = strlen(ciphertext);
+    for (int i = 0; i < len; i++) {
+        if (desiredPlaintext[i] >= 'a' && desiredPlaintext[i] <= 'z') {
+            keyStream[i] = (ciphertext[i] - desiredPlaintext[i] + 26) % 26;
+        } else if (desiredPlaintext[i] >= 'A' && desiredPlaintext[i] <= 'Z') {
+            keyStream[i] = (ciphertext[i] - desiredPlaintext[i] + 26) % 26;
+        }
+    }
+}
+
+int main() {
+    const char* plaintext = "sendmoremoney";
+    int keyStream[] = {9, 0, 1, 7, 23, 15, 21, 14, 11, 11, 2, 8, 9};
+    char ciphertext[256];
+    char decryptedText[256];
+    
+    // Encrypt the plaintext
+    encrypt(plaintext, keyStream, ciphertext);
+    printf("Ciphertext: %s\n", ciphertext);
+    
+    // Decrypt the ciphertext
+    decrypt(ciphertext, keyStream, decryptedText);
+    printf("Decrypted text: %s\n", decryptedText);
+
+    // Part b: Generate a key stream to decrypt to "cash not needed"
+    const char* newPlaintext = "cashnotneeded";
+    int newKeyStream[256];
+    generateKeyStream(newPlaintext, ciphertext, newKeyStream);
+    
+    printf("New key stream for decrypting to 'cash not needed': ");
+    for (int i = 0; i < strlen(newPlaintext); i++) {
+        printf("%d ", newKeyStream[i]);
+    }
+    printf("\n");
+
+    return 0;
+}
+OUTPUT:
+Ciphertext: beokjdmsxzpmh
+Decrypted text: sendmoremoney
+New key stream for decrypting to 'cash not needed': 25 4 22 3 22 15 19 5 19 21 12 8 4

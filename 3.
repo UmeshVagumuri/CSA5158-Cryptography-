@@ -1,0 +1,128 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <ctype.h>
+#define SIZE 5
+void toUpperCase(char* str) {
+    for (int i = 0; str[i]; i++) {
+        str[i] = toupper(str[i]);
+    }
+}
+void removeDuplicates(char* str) {
+    int hash[26] = {0};
+    int currentIndex = 0;
+    int originalIndex = 0;
+    while (str[originalIndex]) {
+        char temp = str[originalIndex];
+        if (temp != 'J') {
+            if (hash[temp - 'A'] == 0) {
+                hash[temp - 'A'] = 1;
+                str[currentIndex++] = temp;
+            }
+        }
+        originalIndex++;
+    }
+    str[currentIndex] = '\0';
+}
+void generateKeyTable(char key[], char keyTable[SIZE][SIZE]) {
+    char alphabet[26] = {0};
+    int k = 0;
+    int x = 0, y = 0;
+    toUpperCase(key);
+    removeDuplicates(key);
+    for (int i = 0; key[i]; i++) {
+        keyTable[x][y++] = key[i];
+        if (y == SIZE) {
+            x++;
+            y = 0;
+        }
+        alphabet[key[i] - 'A'] = 1;
+    }
+    for (char c = 'A'; c <= 'Z'; c++) {
+        if (c == 'J') continue;  // skip 'J'
+        if (alphabet[c - 'A'] == 0) {
+            keyTable[x][y++] = c;
+            if (y == SIZE) {
+                x++;
+                y = 0;
+            }
+        }
+    }
+}
+void search(char keyTable[SIZE][SIZE], char a, char b, int pos[]) {
+    if (a == 'J') a = 'I';
+    if (b == 'J') b = 'I';
+    for (int i = 0; i < SIZE; i++) {
+        for (int j = 0; j < SIZE; j++) {
+            if (keyTable[i][j] == a) {
+                pos[0] = i;
+                pos[1] = j;
+            }
+            if (keyTable[i][j] == b) {
+                pos[2] = i;
+                pos[3] = j;
+            }
+        }
+    }
+}
+void encrypt(char str[], char keyTable[SIZE][SIZE]) {
+    int length = strlen(str);
+    if (length % 2 != 0) {
+        str[length++] = 'X';
+        str[length] = '\0';
+    }
+    for (int i = 0; i < length; i += 2) {
+        int pos[4];
+        search(keyTable, str[i], str[i+1], pos);
+        if (pos[0] == pos[2]) {
+            str[i] = keyTable[pos[0]][(pos[1] + 1) % SIZE];
+            str[i+1] = keyTable[pos[2]][(pos[3] + 1) % SIZE];
+        } else if (pos[1] == pos[3]) {
+            str[i] = keyTable[(pos[0] + 1) % SIZE][pos[1]];
+            str[i+1] = keyTable[(pos[2] + 1) % SIZE][pos[3]];
+        } else {
+            str[i] = keyTable[pos[0]][pos[3]];
+            str[i+1] = keyTable[pos[2]][pos[1]];
+        }
+    }
+}
+void printKeyTable(char keyTable[SIZE][SIZE]) {
+    for (int i = 0; i < SIZE; i++) {
+        for (int j = 0; j < SIZE; j++) {
+            printf("%c ", keyTable[i][j]);
+        }
+        printf("\n");
+    }
+}
+int main() {
+    char key[100], text[100];
+    char keyTable[SIZE][SIZE];
+    printf("Enter the key: ");
+    scanf("%s", key);
+    printf("Enter the plaintext: ");
+    scanf("%s", text);
+    toUpperCase(text);
+    for (int i = 0; text[i]; i++) {
+        if (text[i] == 'J') {
+            text[i] = 'I';
+        }
+    }
+    generateKeyTable(key, keyTable);
+    printf("\nKey Table:\n");
+    printKeyTable(keyTable);
+    encrypt(text, keyTable);
+    printf("\nEncrypted Text: %s\n", text);
+    return 0;
+}
+OUTPUT:
+Enter the key: world
+Enter the plaintext: evergreen
+
+Key Table:
+W O R L D
+A B C E F
+G H I K M
+N P Q S T
+U V X Y Z
+
+Encrypted Text: BYCLIWFFQU

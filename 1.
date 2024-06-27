@@ -1,0 +1,38 @@
+#include <stdio.h>
+#include <ctype.h>
+#include <string.h>
+void encrypt(char text[], int k) {
+    int i;
+    char ch;
+    for(i = 0; text[i] != '\0'; ++i) {
+        ch = text[i];
+        if (isalpha(ch)) {
+            char base = islower(ch) ? 'a' : 'A';
+            ch = (ch - base + k) % 26 + base;
+        }
+        text[i] = ch;
+    }
+} 
+int main() {
+    char text[100];
+    int k;
+    printf("Enter a string: ");
+    fgets(text, sizeof(text), stdin);
+    size_t length = strlen(text);
+    if (length > 0 && text[length - 1] == '\n') {
+        text[length - 1] = '\0';
+    }
+    printf("Enter shift value (1-25): ");
+    scanf("%d", &k);
+    if (k < 1 || k > 25) {
+        printf("Invalid shift value. It must be between 1 and 25.\n");
+        return 1;
+    }
+    encrypt(text, k);
+    printf("Encrypted text: %s\n", text);
+    return 0;
+}
+OUTPUT:
+Enter a string: HELLO WORLD
+Enter shift value (1-25): 4
+Encrypted text: LIPPS ASVPH

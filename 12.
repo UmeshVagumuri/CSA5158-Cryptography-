@@ -1,0 +1,91 @@
+#include <stdio.h>
+#include <string.h>
+
+// Key matrix
+int keyMatrix[2][2] = { {9, 4}, {5, 7} };
+
+// Function to find the modular inverse of a number
+int modInverse(int a, int m) {
+    a = a % m;
+    for (int x = 1; x < m; x++) {
+        if ((a * x) % m == 0) {
+            return x;
+        }
+    }
+    return 1;
+}
+
+// Function to calculate the determinant of a 2x2 matrix
+int determinant(int matrix[2][2]) {
+    return (matrix[0][0] * matrix[1][1] - matrix[0][1] * matrix[1][0]) % 26;
+}
+
+// Function to find the inverse of a 2x2 matrix modulo 26
+void findInverseMatrix(int matrix[2][2], int inverseMatrix[2][2]) {
+    int det = determinant(matrix);
+    int invDet = modInverse(det, 26);
+
+    inverseMatrix[0][0] = (matrix[1][1] * invDet) % 26;
+    inverseMatrix[1][1] = (matrix[0][0] * invDet) % 26;
+    inverseMatrix[0][1] = (-matrix[0][1] * invDet) % 26;
+    inverseMatrix[1][0] = (-matrix[1][0] * invDet) % 26;
+
+    if (inverseMatrix[0][1] < 0) inverseMatrix[0][1] += 26;
+    if (inverseMatrix[1][0] < 0) inverseMatrix[1][0] += 26;
+}
+
+// Function to perform matrix multiplication modulo 26
+void multiplyMatrix(int matrix[2][2], int vector[2], int result[2]) {
+    result[0] = (matrix[0][0] * vector[0] + matrix[0][1] * vector[1]) % 26;
+    result[1] = (matrix[1][0] * vector[0] + matrix[1][1] * vector[1]) % 26;
+}
+
+// Function to encrypt the message using Hill cipher
+void encrypt(char *plaintext, char *ciphertext) {
+    int length = strlen(plaintext);
+    int vector[2], result[2];
+
+    for (int i = 0; i < length; i += 2) {
+        vector[0] = plaintext[i] - 'A';
+        vector[1] = plaintext[i + 1] - 'A';
+        multiplyMatrix(keyMatrix, vector, result);
+        ciphertext[i] = result[0] + 'A';
+        ciphertext[i + 1] = result[1] + 'A';
+    }
+    ciphertext[length] = '\0';
+}
+
+// Function to decrypt the message using Hill cipher
+void decrypt(char *ciphertext, char *plaintext) {
+    int length = strlen(ciphertext);
+    int inverseMatrix[2][2];
+    int vector[2], result[2];
+
+    findInverseMatrix(keyMatrix, inverseMatrix);
+
+    for (int i = 0; i < length; i += 2) {
+        vector[0] = ciphertext[i] - 'A';
+        vector[1] = ciphertext[i + 1] - 'A';
+        multiplyMatrix(inverseMatrix, vector, result);
+        plaintext[i] = result[0] + 'A';
+        plaintext[i + 1] = result[1] + 'A';
+    }
+    plaintext[length] = '\0';
+}
+
+int main() {
+    char plaintext[] = "MEETMEATTHEUSUALPLACEATTENRATHERTHANEIGHTOCLOCK";
+    char ciphertext[256];
+    char decryptedText[256];
+
+    encrypt(plaintext, ciphertext);
+    printf("Ciphertext: %s\n", ciphertext);
+
+    decrypt(ciphertext, decryptedText);
+    printf("Decrypted text: %s\n", decryptedText);
+
+    return 0;
+}
+OUTPUT:
+Ciphertext: UKIXUKYDROMEIWSZXWIOKUNUKHXHROAJROANQYEBTLKJEG3
+Decrypted text: WQQLWQALLPQCUCAFVFAIQALLQNDALPQDLPANQGYPLEIFEI-

@@ -1,0 +1,107 @@
+#include <stdio.h>
+#include <string.h>
+
+#define ALPHABET_SIZE 26
+
+// English letter frequency (in percentage)
+double englishLetterFrequency[ALPHABET_SIZE] = {
+    8.167, 1.492, 2.782, 4.253, 12.702, 2.228, 2.015, 6.094, 6.966, 0.153,
+    0.772, 4.025, 2.406, 6.749, 7.507, 1.929, 0.095, 5.987, 6.327, 9.056,
+    2.758, 0.978, 2.360, 0.150, 1.974, 0.074
+};
+
+// Function to calculate the score of a plaintext based on letter frequency
+double calculateScore(const char* text) {
+    int letterCount[ALPHABET_SIZE] = {0};
+    int totalLetters = 0;
+    double score = 0.0;
+    
+    for (int i = 0; text[i] != '\0'; i++) {
+        if (text[i] >= 'a' && text[i] <= 'z') {
+            letterCount[text[i] - 'a']++;
+            totalLetters++;
+        } else if (text[i] >= 'A' && text[i] <= 'Z') {
+            letterCount[text[i] - 'A']++;
+            totalLetters++;
+        }
+    }
+    
+    for (int i = 0; i < ALPHABET_SIZE; i++) {
+        double frequency = ((double)letterCount[i] / totalLetters) * 100;
+        score += frequency * englishLetterFrequency[i];
+    }
+    
+    return score;
+}
+
+// Function to decrypt the ciphertext using a given key
+void decrypt(const char* ciphertext, char* plaintext, int key) {
+    int len = strlen(ciphertext);
+    for (int i = 0; i < len; i++) {
+        if (ciphertext[i] >= 'a' && ciphertext[i] <= 'z') {
+            plaintext[i] = ((ciphertext[i] - 'a' - key + ALPHABET_SIZE) % ALPHABET_SIZE) + 'a';
+        } else if (ciphertext[i] >= 'A' && ciphertext[i] <= 'Z') {
+            plaintext[i] = ((ciphertext[i] - 'A' - key + ALPHABET_SIZE) % ALPHABET_SIZE) + 'A';
+        } else {
+            plaintext[i] = ciphertext[i];  // Non-alphabet characters remain unchanged
+        }
+    }
+    plaintext[len] = '\0';
+}
+
+// Function to perform the letter frequency attack
+void frequencyAttack(const char* ciphertext, int topN) {
+    char plaintext[256];
+    double scores[ALPHABET_SIZE];
+    int keys[ALPHABET_SIZE];
+    
+    // Decrypt using all possible keys and calculate scores
+    for (int key = 0; key < ALPHABET_SIZE; key++) {
+        decrypt(ciphertext, plaintext, key);
+        scores[key] = calculateScore(plaintext);
+        keys[key] = key;
+    }
+    
+    // Sort keys based on scores (bubble sort for simplicity)
+    for (int i = 0; i < ALPHABET_SIZE - 1; i++) {
+        for (int j = 0; j < ALPHABET_SIZE - 1 - i; j++) {
+            if (scores[j] < scores[j + 1]) {
+                double tempScore = scores[j];
+                scores[j] = scores[j + 1];
+                scores[j + 1] = tempScore;
+                
+                int tempKey = keys[j];
+                keys[j] = keys[j + 1];
+                keys[j + 1] = tempKey;
+            }
+        }
+    }
+    
+    // Print the top N possible plaintexts
+    printf("Top %d possible plaintexts:\n", topN);
+    for (int i = 0; i < topN && i < ALPHABET_SIZE; i++) {
+        decrypt(ciphertext, plaintext, keys[i]);
+        printf("Key: %2d, Score: %.2f, Plaintext: %s\n", keys[i], scores[i], plaintext);
+    }
+}
+
+int main() {
+    const char* ciphertext = "Uifsf jt b tfdsfu nfttbhf!";
+    int topN = 10;
+
+    frequencyAttack(ciphertext, topN);
+    
+    return 0;
+}
+OUTPUT:
+Top 10 possible plaintexts:
+Key:  1, Score: 800.97, Plaintext: There is a secret message!
+Key:  5, Score: 618.01, Plaintext: Pdana eo w oaynap iaoowca!
+Key: 12, Score: 530.95, Plaintext: Iwtgt xh p htrgti bthhpvt!
+Key: 14, Score: 488.39, Plaintext: Gurer vf n frperg zrffntr!
+Key: 15, Score: 460.83, Plaintext: Ftqdq ue m eqodqf yqeemsq!
+Key: 16, Score: 456.54, Plaintext: Espcp td l dpncpe xpddlrp!
+Key:  0, Score: 452.20, Plaintext: Uifsf jt b tfdsfu nfttbhf!
+Key: 13, Score: 438.28, Plaintext: Hvsfs wg o gsqfsh asggous!
+Key: 23, Score: 420.04, Plaintext: Xlivi mw e wigvix qiwweki!
+Key: 17, Score: 411.33, Plaintext: Drobo sc k combod wocckqo!

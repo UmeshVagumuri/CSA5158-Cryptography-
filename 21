@@ -1,0 +1,125 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#define BLOCK_SIZE 8 // Example block size of 8 bytes (64 bits)
+
+// Function prototypes
+void encrypt_ecb(unsigned char *plaintext, unsigned char *key, int plaintext_len);
+void decrypt_ecb(unsigned char *ciphertext, unsigned char *key, int ciphertext_len);
+void encrypt_cbc(unsigned char *plaintext, unsigned char *key, unsigned char *iv, int plaintext_len);
+void decrypt_cbc(unsigned char *ciphertext, unsigned char *key, unsigned char *iv, int ciphertext_len);
+void encrypt_cfb(unsigned char *plaintext, unsigned char *key, unsigned char *iv, int plaintext_len);
+void decrypt_cfb(unsigned char *ciphertext, unsigned char *key, unsigned char *iv, int ciphertext_len);
+
+int main() {
+    unsigned char key[BLOCK_SIZE] = "01234567"; // Example 64-bit key (8 bytes)
+    unsigned char iv[BLOCK_SIZE] = "ABCDEFGH";  // Example 64-bit IV for CBC and CFB modes
+    unsigned char plaintext[] = "Hello, ECB, CBC, and CFB modes!"; // Example plaintext
+    int plaintext_len = strlen((const char *)plaintext);
+
+    // Ensure plaintext length is a multiple of BLOCK_SIZE for simplicity
+    int padded_len = (plaintext_len + BLOCK_SIZE - 1) / BLOCK_SIZE * BLOCK_SIZE;
+    unsigned char *padded_plaintext = (unsigned char *)malloc(padded_len);
+    memcpy(padded_plaintext, plaintext, plaintext_len);
+
+    printf("Original plaintext: %s\n", plaintext);
+    
+    // Encrypt using ECB mode
+    printf("\nECB Mode:\n");
+    encrypt_ecb(padded_plaintext, key, padded_len);
+    decrypt_ecb(padded_plaintext, key, padded_len);
+
+    // Encrypt using CBC mode
+    printf("\nCBC Mode:\n");
+    memcpy(padded_plaintext, plaintext, plaintext_len); // Reset plaintext
+    encrypt_cbc(padded_plaintext, key, iv, padded_len);
+    decrypt_cbc(padded_plaintext, key, iv, padded_len);
+
+    // Encrypt using CFB mode
+    printf("\nCFB Mode:\n");
+    memcpy(padded_plaintext, plaintext, plaintext_len); // Reset plaintext
+    encrypt_cfb(padded_plaintext, key, iv, padded_len);
+    decrypt_cfb(padded_plaintext, key, iv, padded_len);
+
+    free(padded_plaintext); // Free dynamically allocated memory
+
+    return 0;
+}
+
+// AES-like ECB encryption function (for demonstration purposes only)
+void encrypt_ecb(unsigned char *plaintext, unsigned char *key, int plaintext_len) {
+    // Dummy encryption: XOR plaintext with key
+    for (int i = 0; i < plaintext_len; ++i) {
+        plaintext[i] ^= key[i % BLOCK_SIZE];
+    }
+}
+
+// AES-like ECB decryption function (for demonstration purposes only)
+void decrypt_ecb(unsigned char *ciphertext, unsigned char *key, int ciphertext_len) {
+    // Dummy decryption: XOR ciphertext with key
+    for (int i = 0; i < ciphertext_len; ++i) {
+        ciphertext[i] ^= key[i % BLOCK_SIZE];
+    }
+}
+
+// AES-like CBC encryption function (for demonstration purposes only)
+void encrypt_cbc(unsigned char *plaintext, unsigned char *key, unsigned char *iv, int plaintext_len) {
+    // Dummy CBC encryption: XOR plaintext with previous ciphertext (or IV for the first block)
+    for (int i = 0; i < plaintext_len; i += BLOCK_SIZE) {
+        for (int j = 0; j < BLOCK_SIZE; ++j) {
+            plaintext[i + j] ^= (i == 0 ? iv[j] : plaintext[i - BLOCK_SIZE + j]);
+            plaintext[i + j] ^= key[j];
+        }
+    }
+}
+
+// AES-like CBC decryption function (for demonstration purposes only)
+void decrypt_cbc(unsigned char *ciphertext, unsigned char *key, unsigned char *iv, int ciphertext_len) {
+    // Dummy CBC decryption: XOR ciphertext with previous ciphertext (or IV for the first block)
+    unsigned char temp[BLOCK_SIZE];
+    for (int i = 0; i < ciphertext_len; i += BLOCK_SIZE) {
+        memcpy(temp, ciphertext + i, BLOCK_SIZE);
+        for (int j = 0; j < BLOCK_SIZE; ++j) {
+            ciphertext[i + j] ^= key[j];
+            ciphertext[i + j] ^= (i == 0 ? iv[j] : ciphertext[i - BLOCK_SIZE + j]);
+        }
+        memcpy(iv, temp, BLOCK_SIZE);
+    }
+}
+
+// AES-like CFB encryption function (for demonstration purposes only)
+void encrypt_cfb(unsigned char *plaintext, unsigned char *key, unsigned char *iv, int plaintext_len) {
+    // Dummy CFB encryption: XOR plaintext with previous ciphertext (or IV for the first block)
+    unsigned char temp[BLOCK_SIZE];
+    for (int i = 0; i < plaintext_len; i += BLOCK_SIZE) {
+        memcpy(temp, plaintext + i, BLOCK_SIZE);
+        for (int j = 0; j < BLOCK_SIZE; ++j) {
+            plaintext[i + j] ^= key[j];
+            plaintext[i + j] ^= iv[j];
+        }
+        memcpy(iv, temp, BLOCK_SIZE);
+    }
+}
+
+// AES-like CFB decryption function (for demonstration purposes only)
+void decrypt_cfb(unsigned char *ciphertext, unsigned char *key, unsigned char *iv, int ciphertext_len) {
+    // Dummy CFB decryption: XOR ciphertext with previous ciphertext (or IV for the first block)
+    unsigned char temp[BLOCK_SIZE];
+    for (int i = 0; i < ciphertext_len; i += BLOCK_SIZE) {
+        memcpy(temp, ciphertext + i, BLOCK_SIZE);
+        for (int j = 0; j < BLOCK_SIZE; ++j) {
+            ciphertext[i + j] ^= key[j];
+            ciphertext[i + j] ^= iv[j];
+        }
+        memcpy(iv, temp, BLOCK_SIZE);
+    }
+}
+OUTPUT:
+Original plaintext: Hello, ECB, CBC, and CFB modes!
+
+ECB Mode:
+
+CBC Mode:
+
+CFB Mode:

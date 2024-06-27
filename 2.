@@ -1,0 +1,59 @@
+
+#include <stdio.h>
+#include <string.h>
+#include <ctype.h>
+
+// Function to encrypt the text using Monoalphabetic Substitution Cipher
+void monoalphabeticCipher(char *plaintext, char *key, char *ciphertext) {
+    int i;
+    char ch;
+    for (i = 0; plaintext[i] != '\0'; ++i) {
+        ch = plaintext[i];
+
+        if (isalpha(ch)) {
+            if (islower(ch)) {
+                // Map lowercase letter
+                ciphertext[i] = tolower(key[ch - 'a']);
+            } else if (isupper(ch)) {
+                // Map uppercase letter
+                ciphertext[i] = toupper(key[ch - 'A']);
+            }
+        } else {
+            // Non-alphabetic characters remain unchanged
+            ciphertext[i] = ch;
+        }
+    }
+    // Null terminate the ciphertext string
+    ciphertext[i] = '\0';
+}
+
+int main() {
+    char plaintext[100], ciphertext[100], key[27];
+    int i, alphabetCheck[26] = {0};
+    printf("Enter a plaintext: ");
+    fgets(plaintext, sizeof(plaintext), stdin);
+    plaintext[strcspn(plaintext, "\n")] = '\0';
+    printf("Enter the 26-letter substitution key: ");
+    fgets(key, sizeof(key), stdin);
+    key[strcspn(key, "\n")] = '\0';
+    if (strlen(key) != 26) {
+        printf("Invalid key. The key must contain exactly 26 unique letters.\n");
+        return 1;
+    }
+    for (i = 0; i < 26; i++) {
+        char ch = tolower(key[i]);
+        if (!isalpha(ch) || alphabetCheck[ch - 'a'] != 0) {
+            printf("Invalid key. The key must contain exactly 26 unique letters.\n");
+            return 1;
+        }
+        alphabetCheck[ch - 'a'] = 1;
+    }
+    monoalphabeticCipher(plaintext, key, ciphertext);
+    printf("Ciphertext: %s\n", ciphertext);
+
+    return 0;
+}
+OUTPUT:
+Enter a plaintext: HELLO WORLD
+Enter the 26-letter substitution key: qwertyuiopasdfghjklzxcvbnm
+Ciphertext: ITSSG VGKSR

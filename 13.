@@ -1,0 +1,95 @@
+#include <stdio.h>
+#include <string.h>
+
+#define SIZE 2
+#define ALPHABET_SIZE 26
+
+// Function to find the modular inverse of a number
+int modInverse(int a, int m) {
+    a = a % m;
+    for (int x = 1; x < m; x++) {
+        if ((a * x) % m == 1) {
+            return x;
+        }
+    }
+    return -1;  // If no modular inverse exists
+}
+
+// Function to calculate the determinant of a 2x2 matrix
+int determinant(int matrix[SIZE][SIZE]) {
+    return (matrix[0][0] * matrix[1][1] - matrix[0][1] * matrix[1][0]) % ALPHABET_SIZE;
+}
+
+// Function to find the inverse of a 2x2 matrix modulo 26
+void findInverseMatrix(int matrix[SIZE][SIZE], int inverseMatrix[SIZE][SIZE]) {
+    int det = determinant(matrix);
+    int invDet = modInverse(det, ALPHABET_SIZE);
+
+    inverseMatrix[0][0] = (matrix[1][1] * invDet) % ALPHABET_SIZE;
+    inverseMatrix[1][1] = (matrix[0][0] * invDet) % ALPHABET_SIZE;
+    inverseMatrix[0][1] = (-matrix[0][1] * invDet) % ALPHABET_SIZE;
+    inverseMatrix[1][0] = (-matrix[1][0] * invDet) % ALPHABET_SIZE;
+
+    if (inverseMatrix[0][1] < 0) inverseMatrix[0][1] += ALPHABET_SIZE;
+    if (inverseMatrix[1][0] < 0) inverseMatrix[1][0] += ALPHABET_SIZE;
+}
+
+// Function to multiply a 2x2 matrix by a 2x1 vector modulo 26
+void multiplyMatrix(int matrix[SIZE][SIZE], int vector[SIZE], int result[SIZE]) {
+    for (int i = 0; i < SIZE; i++) {
+        result[i] = 0;
+        for (int j = 0; j < SIZE; j++) {
+            result[i] += matrix[i][j] * vector[j];
+        }
+        result[i] %= ALPHABET_SIZE;
+    }
+}
+
+// Function to recover the key matrix using known plaintext-ciphertext pairs
+void recoverKeyMatrix(int plaintextPairs[SIZE][SIZE], int ciphertextPairs[SIZE][SIZE], int keyMatrix[SIZE][SIZE]) {
+    int inversePlaintext[SIZE][SIZE];
+    findInverseMatrix(plaintextPairs, inversePlaintext);
+    for (int i = 0; i < SIZE; i++) {
+        for (int j = 0; j < SIZE; j++) {
+            keyMatrix[i][j] = 0;
+            for (int k = 0; k < SIZE; k++) {
+                keyMatrix[i][j] += (ciphertextPairs[i][k] * inversePlaintext[k][j]) % ALPHABET_SIZE;
+            }
+            keyMatrix[i][j] %= ALPHABET_SIZE;
+            if (keyMatrix[i][j] < 0) keyMatrix[i][j] += ALPHABET_SIZE;
+        }
+    }
+}
+
+int main() {
+    // Known plaintext-ciphertext pairs
+    // Plaintext pairs (each pair is a 2x1 vector)
+    int plaintextPairs[SIZE][SIZE] = {
+        {7, 4}, // HE
+        {4, 11} // EL
+    };
+
+    // Corresponding ciphertext pairs
+    int ciphertextPairs[SIZE][SIZE] = {
+        {11, 8}, // LI
+        {3, 7}   // DH
+    };
+
+    int recoveredKey[SIZE][SIZE];
+
+    recoverKeyMatrix(plaintextPairs, ciphertextPairs, recoveredKey);
+
+    printf("Recovered key matrix:\n");
+    for (int i = 0; i < SIZE; i++) {
+        for (int j = 0; j < SIZE; j++) {
+            printf("%d ", recoveredKey[i][j]);
+        }
+        printf("\n");
+    }
+
+    return 0;
+}
+OUTPUT:
+Recovered key matrix:
+7 10
+15 7

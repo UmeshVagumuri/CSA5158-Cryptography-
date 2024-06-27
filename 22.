@@ -1,0 +1,213 @@
+
+#include <stdio.h>
+#include <string.h>
+
+// Initial permutation table for 8-bit input
+const int IP[] = {2, 6, 3, 1, 4, 8, 5, 7};
+
+// Inverse initial permutation table for 8-bit output
+const int IP_INV[] = {4, 1, 3, 5, 7, 2, 8, 6};
+
+// Expansion permutation table for 4-bit input to 8-bit output
+const int EP[] = {4, 1, 2, 3, 2, 3, 4, 1};
+
+// Straight permutation table for 4-bit output
+const int P4[] = {2, 4, 3, 1};
+
+// S-Box tables
+const int S0[4][4] = {
+    {1, 0, 3, 2},
+    {3, 2, 1, 0},
+    {0, 2, 1, 3},
+    {3, 1, 3, 2}
+};
+
+const int S1[4][4] = {
+    {0, 1, 2, 3},
+    {2, 0, 1, 3},
+    {3, 0, 1, 0},
+    {2, 1, 0, 3}
+};
+
+// Permutation function P8
+const int P8[] = {6, 3, 7, 4, 8, 5, 10, 9};
+
+// Permutation function P10
+const int P10[] = {3, 5, 2, 7, 4, 10, 1, 9, 8, 6};
+
+// Left circular shift functions for key generation
+const int LS1[] = {1, 2, 3, 4, 0, 6, 7, 8, 9, 5};
+const int LS2[] = {2, 3, 4, 5, 0, 7, 8, 9, 10, 6};
+
+// S-DES key schedule functions
+void generateSubKeys(unsigned char *key, unsigned char *k1, unsigned char *k2);
+void permutation(unsigned char *input, const int *permutation_table, int size);
+unsigned char substitute(unsigned char input, const int s_box[4][4]);
+unsigned char fK(unsigned char R, unsigned char *subKey);
+void sdesEncrypt(unsigned char *plaintext, unsigned char *k1, unsigned char *k2);
+void sdesDecrypt(unsigned char *ciphertext, unsigned char *k1, unsigned char *k2);
+
+// CBC mode functions
+void encrypt(unsigned char *plaintext, unsigned char *key, unsigned char *iv);
+void decrypt(unsigned char *ciphertext, unsigned char *key, unsigned char *iv);
+
+// Helper functions
+void printBinary(unsigned char *value, int bits);
+
+int main() {
+    unsigned char key[10] = {0, 1, 1, 1, 1, 1, 1, 0, 1, 0}; // 10-bit binary key
+    unsigned char plaintext[8] = {0, 0, 0, 0, 0, 0, 0, 1}; // 8-bit binary plaintext
+    unsigned char iv[8] = {1, 0, 1, 0, 1, 0, 1, 0}; // 8-bit binary initialization vector
+
+    printf("Original plaintext: ");
+    
+    
+    // Encrypt using S-DES in CBC mode
+    encrypt(plaintext, key, iv);
+    printf("Encrypted ciphertext: ");
+    
+    // Decrypt using S-DES in CBC mode
+    decrypt(plaintext, key, iv);
+    printf("Decrypted plaintext: ");
+
+    return 0;
+}
+
+// S-DES key scheduling to generate subkeys k1 and k2
+void generateSubKeys(unsigned char *key, unsigned char *k1, unsigned char *k2) {
+    unsigned char tempKey[10];
+    memcpy(tempKey, key, 10);
+    permutation(tempKey, P10, 10);
+    
+    unsigned char LS1Key[10];
+    for (int i = 0; i < 10; ++i) {
+        LS1Key[i] = tempKey[LS1[i]];
+    }
+    permutation(LS1Key, P8, 8);
+    memcpy(k1, LS1Key, 8);
+    
+    unsigned char LS2Key[10];
+    for (int i = 0; i < 10; ++i) {
+        LS2Key[i] = LS1Key[LS2[i]];
+    }
+    permutation(LS2Key, P8, 8);
+    memcpy(k2, LS2Key, 8);
+}
+
+// Initial and inverse permutations
+void permutation(unsigned char *input, const int *permutation_table, int size) {
+    unsigned char temp[size];
+    for (int i = 0; i < size; ++i) {
+        temp[i] = input[permutation_table[i] - 1];
+    }
+    memcpy(input, temp, size);
+}
+
+// S-Box substitution
+unsigned char substitute(unsigned char input, const int s_box[4][4]) {
+    int row = ((input & 0x08) >> 2) | (input & 0x01);
+    int col = (input & 0x06) >> 1;
+    return s_box[row][col];
+}
+
+// Round function fK
+unsigned char fK(unsigned char R, unsigned char *subKey) {
+    unsigned char expandedR = 0;
+    for (int i = 0; i < 8; ++i) {
+        expandedR |= ((R >> (EP[i] - 1)) & 0x01) << (7 - i);
+    }
+    expandedR ^= subKey[0];
+    unsigned char substitutedR = (substitute((expandedR & 0xF0) >> 4, S0) << 2) | substitute(expandedR & 0x0F, S1);
+    unsigned char permutedR = 0;
+    for (int i = 0; i < 4; ++i) {
+        permutedR |= ((substitutedR >> (P4[i] - 1)) & 0x01) << (3 - i);
+    }
+    return permutedR;
+}
+
+// S-DES encryption
+void sdesEncrypt(unsigned char *plaintext, unsigned char *k1, unsigned char *k2) {
+    unsigned char temp[8];
+    memcpy(temp, plaintext, 8);
+    
+    permutation(temp, IP, 8);
+    
+    unsigned char L = (temp[0] & 0xF0) >> 4;
+    unsigned char R = temp[0] & 0x0F;
+    
+    unsigned char tempR = fK(R, k1) ^ L;
+    L = R;
+    R = tempR;
+    
+    tempR = fK(R, k2) ^ L;
+    L = R;
+    R = tempR;
+    
+    temp[0] = (R << 4) | L;
+    
+    permutation(temp, IP_INV, 8);
+    
+    memcpy(plaintext, temp, 8);
+}
+
+// S-DES decryption
+void sdesDecrypt(unsigned char *ciphertext, unsigned char *k1, unsigned char *k2) {
+    unsigned char temp[8];
+    memcpy(temp, ciphertext, 8);
+    
+    permutation(temp, IP, 8);
+    
+    unsigned char L = (temp[0] & 0xF0) >> 4;
+    unsigned char R = temp[0] & 0x0F;
+    
+    unsigned char tempR = fK(R, k2) ^ L;
+    L = R;
+    R = tempR;
+    
+    tempR = fK(R, k1) ^ L;
+    L = R;
+    R = tempR;
+    
+    temp[0] = (R << 4) | L;
+    
+    permutation(temp, IP_INV, 8);
+    
+    memcpy(ciphertext, temp, 8);
+}
+
+// CBC mode encryption
+void encrypt(unsigned char *plaintext, unsigned char *key, unsigned char *iv) {
+    unsigned char k1[8], k2[8];
+    generateSubKeys(key, k1, k2);
+    
+    for (int i = 0; i < 8; ++i) {
+        plaintext[i] ^= iv[i];
+    }
+    
+    sdesEncrypt(plaintext, k1, k2);
+    
+    for (int i = 0; i < 8; ++i) {
+        iv[i] = plaintext[i];
+    }
+}
+
+// CBC mode decryption
+void decrypt(unsigned char *ciphertext, unsigned char *key, unsigned char *iv) {
+    unsigned char k1[8], k2[8];
+    generateSubKeys(key, k1, k2);
+    
+    unsigned char temp[8];
+    memcpy(temp, ciphertext, 8);
+    
+    sdesDecrypt(ciphertext, k1, k2);
+    
+    for (int i = 0; i < 8; ++i) {
+        ciphertext[i] ^= iv[i];
+        iv[i] = temp[i];
+    }
+}
+
+// Function to print binary representation
+
+OUTPUT:
+Original plaintext: Encrypted ciphertext: Decrypted plaintext:

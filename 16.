@@ -1,0 +1,114 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <ctype.h>
+
+#define ALPHABET_SIZE 26
+
+// English letter frequency (approximate)
+const double ENGLISH_FREQ[ALPHABET_SIZE] = {
+    8.167, 1.492, 2.782, 4.253, 12.702, 2.228, 2.015, 6.094, 6.966, 0.153,
+    0.772, 4.025, 2.406, 6.749, 7.507, 1.929, 0.095, 5.987, 6.327, 9.056,
+    2.758, 0.978, 2.360, 0.150, 1.974, 0.074
+};
+
+// Function to calculate the frequency of letters in a given text
+void calculateFrequency(const char *text, double *freq) {
+    int count[ALPHABET_SIZE] = {0};
+    int total = 0;
+
+    for (int i = 0; text[i] != '\0'; i++) {
+        if (isalpha(text[i])) {
+            count[toupper(text[i]) - 'A']++;
+            total++;
+        }
+    }
+
+    for (int i = 0; i < ALPHABET_SIZE; i++) {
+        freq[i] = ((double) count[i] / total) * 100;
+    }
+}
+
+// Function to compare two frequency distributions
+double compareFrequencies(double *freq1, const double *freq2) {
+    double diff = 0.0;
+    for (int i = 0; i < ALPHABET_SIZE; i++) {
+        diff += (freq1[i] - freq2[i]) * (freq1[i] - freq2[i]);
+    }
+    return diff;
+}
+
+// Function to decrypt a message using a given key
+void decryptMessage(const char *ciphertext, const char *key, char *plaintext) {
+    for (int i = 0; ciphertext[i] != '\0'; i++) {
+        if (isalpha(ciphertext[i])) {
+            char base = isupper(ciphertext[i]) ? 'A' : 'a';
+            plaintext[i] = base + (strchr(key, toupper(ciphertext[i])) - key);
+        } else {
+            plaintext[i] = ciphertext[i];
+        }
+    }
+    plaintext[strlen(ciphertext)] = '\0';
+}
+
+// Function to perform letter frequency attack
+void frequencyAttack(const char *ciphertext, int topN) {
+    double cipherFreq[ALPHABET_SIZE] = {0};
+    calculateFrequency(ciphertext, cipherFreq);
+
+    char alphabet[ALPHABET_SIZE + 1] = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+    char bestKeys[topN][ALPHABET_SIZE + 1];
+    double bestScores[topN];
+    for (int i = 0; i < topN; i++) {
+        bestScores[i] = 1e9;
+    }
+
+    char key[ALPHABET_SIZE + 1];
+    double score;
+
+    // Try all permutations of the alphabet (naive and inefficient, for simplicity)
+    for (int i = 0; i < ALPHABET_SIZE; i++) {
+        for (int j = 0; j < ALPHABET_SIZE; j++) {
+            if (i != j) {
+                strcpy(key, alphabet);
+                key[i] = alphabet[j];
+                key[j] = alphabet[i];
+                score = compareFrequencies(cipherFreq, ENGLISH_FREQ);
+
+                for (int k = 0; k < topN; k++) {
+                    if (score < bestScores[k]) {
+                        for (int l = topN - 1; l > k; l--) {
+                            bestScores[l] = bestScores[l - 1];
+                            strcpy(bestKeys[l], bestKeys[l - 1]);
+                        }
+                        bestScores[k] = score;
+                        strcpy(bestKeys[k], key);
+                        break;
+                    }
+                }
+            }
+        }
+    }
+
+    char plaintext[1000];
+    for (int i = 0; i < topN; i++) {
+        decryptMessage(ciphertext, bestKeys[i], plaintext);
+        printf("Possible plaintext %d: %s\n", i + 1, plaintext);
+    }
+}
+
+int main() {
+    const char *ciphertext = "YOUR CIPHERTEXT HERE"; // Replace with the actual ciphertext
+    int topN;
+
+    printf("Enter the number of possible plaintexts to display: ");
+    scanf("%d", &topN);
+
+    frequencyAttack(ciphertext, topN);
+
+    return 0;
+}
+OUTPUT:
+Enter the number of possible plaintexts to display: 2
+Possible plaintext 1: YOUR CIPHERTEXT HERE
+Possible plaintext 2: YOUR AIPHERTEXT HERE
